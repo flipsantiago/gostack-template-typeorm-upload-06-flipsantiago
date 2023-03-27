@@ -4,7 +4,7 @@
   "port": 32768,
   "username": "postgres",
   "password": "postgrespw",
-  "database": "gostack_desafio06",
+  "database": "gostack_desafio06_tests",
   "entities": ["./src/models/*.ts"],
   "migrations": ["./src/database/migrations/*.ts"],
   "cli": {

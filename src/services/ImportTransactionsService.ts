@@ -1,5 +1,6 @@
+/* eslint-disable no-plusplus */
+/* eslint-disable no-continue */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import csvParse from 'csv-parse';
 import fs from 'fs';
 import { getCustomRepository, getRepository, In } from 'typeorm';
 import Category from '../models/Category';
@@ -19,28 +20,34 @@ class ImportTransactionsService {
     const transactionRepository = getCustomRepository(TransactionsRepository);
     const categoriesRepository = getRepository(Category);
 
-    const parsers = csvParse({
-      from_line: 2,
-    });
-
-    const parseCSV = readStream.pipe(parsers);
-
+    const fromLine = 2;
+    let isFirstLine = true;
     const transactions: CSVTransaction[] = [];
     const categories: string[] = [];
 
-    parseCSV.on('data', async line => {
-      const [title, type, value, category] = line.map((cell: string) =>
-        cell.trim(),
-      );
+    readStream.on('data', data => {
+      const lines = data.toString().split('\n');
+      let startIndex = 0;
 
-      if (!title || !type || !value) return;
+      if (isFirstLine) {
+        isFirstLine = false;
+        startIndex = fromLine - 1;
+      }
 
-      categories.push(category);
+      for (let index = startIndex; index < lines.length; index += 1) {
+        const line = lines[index];
+        const [title, type, value, category] = line
+          .split(',')
+          .map(cell => cell.trim());
 
-      transactions.push({ title, type, value, category });
+        if (!title || !type || !value || !categories) continue;
+
+        categories.push(category);
+        transactions.push({ title, type, value, category });
+      }
     });
 
-    await new Promise(resolve => parseCSV.on('end', resolve));
+    await new Promise(resolve => readStream.on('end', resolve));
 
     const existentCategories = await categoriesRepository.find({
       where: {
